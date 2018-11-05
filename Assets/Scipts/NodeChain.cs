@@ -5,8 +5,8 @@ using UnityEngine;
 public class NodeChain : MonoBehaviour
 {
 
-	List<Transform> nodes;
-	List<float> lengths;
+	public List<Node> nodes;
+	public List<Bone> bones;
 
 	Vector3 target;
 
@@ -28,23 +28,22 @@ public class NodeChain : MonoBehaviour
 
 	public void Init()
 	{
-		nodes = new List<Transform>();
-		lengths = new List<float>();
+		nodes = new List<Node>();
+		bones = new List<Bone>();
 		target = transform.position;
 		Transform actualNode = transform;
 
 		while (!actualNode.CompareTag("AnchorNode"))
 		{
-			Transform lastNode = actualNode;
+			nodes.Add(actualNode.GetComponent<Node>());
+			bones.Add(actualNode.GetComponent<Bone>());
 			actualNode = actualNode.parent;
-
-			lengths.Add(Vector3.Distance(lastNode.position, actualNode.position));
-
-			nodes.Add(actualNode);
 		}
+		nodes.Add(actualNode.GetComponent<Node>());
+		bones.Add(actualNode.GetComponent<Bone>());
 
 		lr = GetComponent<LineRenderer>();
-		lr.positionCount = nodes.Count + 1;
+		lr.positionCount = nodes.Count;
 		UpdateLineRenderer();
 	}
 
@@ -59,30 +58,25 @@ public class NodeChain : MonoBehaviour
 
 	public void MoveChain()
 	{
-		Vector3 anchorPos = nodes[nodes.Count - 1].position;
+		Vector3 anchorPos = nodes[nodes.Count - 1].transform.position;
 
-		transform.position = target;
-		Vector3 lastNode = target;
-		for (int i = 0; i < nodes.Count; i++)
-		{
-			nodes[i].position = lastNode + (nodes[i].position - lastNode).normalized * lengths[i];
-			lastNode = nodes[i].position;
-		}
-
-		nodes.Reverse();
-		lengths.Reverse();
-
-		nodes[0].position = anchorPos;
-		lastNode = anchorPos;
+		nodes[0].transform.position = target;
 		for (int i = 1; i < nodes.Count; i++)
 		{
-			nodes[i].position = lastNode + (nodes[i].position - lastNode).normalized * lengths[i - 1];
-			lastNode = nodes[i].position;
+			nodes[i].transform.position = nodes[i - 1].transform.position + (nodes[i].transform.position - nodes[i - 1].transform.position).normalized * bones[i - 1].maxLength;
 		}
-		transform.position = lastNode + (transform.position - lastNode).normalized * lengths[lengths.Count - 1];
 
 		nodes.Reverse();
-		lengths.Reverse();
+		bones.Reverse();
+
+		nodes[0].transform.position = anchorPos;
+		for (int i = 1; i < nodes.Count; i++)
+		{
+			nodes[i].transform.position = nodes[i - 1].transform.position + (nodes[i].transform.position - nodes[i - 1].transform.position).normalized * bones[i].maxLength;
+		}
+
+		nodes.Reverse();
+		bones.Reverse();
 
 		UpdateLineRenderer();
 	}
@@ -91,8 +85,8 @@ public class NodeChain : MonoBehaviour
 	{
 		LineRenderer lr = GetComponent<LineRenderer>();
 		lr.SetPosition(0, transform.position);
-		int i = 1;
-		foreach(Transform node in nodes)
-			lr.SetPosition(i++, node.position);
+		int i = 0;
+		foreach(Node node in nodes)
+			lr.SetPosition(i++, node.transform.position);
 	}
 }

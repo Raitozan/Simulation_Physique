@@ -2,6 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Bone : MonoBehaviour {
-	public float maxLength;
+public class Node : MonoBehaviour {
+	public float maxAngle;
 }
